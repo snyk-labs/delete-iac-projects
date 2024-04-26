@@ -1,5 +1,6 @@
 import requests
 import os
+import time
 
 # Global variables
 SNYK_TOKEN = os.getenv('SNYK_TOKEN')
@@ -79,13 +80,28 @@ def get_targets(orgId):
         
 def delete_project(orgId, projectId):
     url = f'https://api.snyk.io/rest/orgs/{orgId}/projects/{projectId}?&version=2024-01-23'
+    retry = 5
+    counter = 0
+    success = False
 
     try:
         delete = requests.delete(url, headers=restHeaders)
-        print(f"Response Code: {delete}")
+        print(f"Response Code: {delete.status_code}")
+
+        if delete.status_code == 429:
+            time.sleep(65)
+            while counter < retry and success == False:
+                delete = requests.delete(url, headers=restHeaders)
+                if delete.status_code == 429:
+                    print("Hit rate limit, sleeping for 65 seconds...")
+                    counter += 1
+                    time.sleep(65)
+                if delete.status_code == 204:
+                    print(f"Response Code: {delete.status_code}")
+                    success == True
     except:
         print("Delete endpoint call failed.")
-        print(f"Response Code: {delete}")
+        print(f"Response Code: {delete.status_code} \n Response {delete}")
         
 
 
